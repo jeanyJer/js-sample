@@ -1,0 +1,52 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:7.10
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: yarn install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+  ready-to-deploy:
+    docker:
+      - image: circleci/node:7.10
+    steps:
+      - checkout
+      - run:
+          name: Read to deploy heroku
+
+  deploy:
+    docker:
+      - image: circleci/node:7.10
+    steps:
+      - checkout
+      - run:
+          name: Deploy Master to Heroku
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - ready-to-deploy:
+          type: approval
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - ready-to-deploy
+          filters:
+            branches:
+              only: master
